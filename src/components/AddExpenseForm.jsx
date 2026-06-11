@@ -1,21 +1,23 @@
 import { useState } from "react";
-import { addExpense } from "../services/expenseService";
+import { addExpense, updateExpense } from "../services/expenseService";
+import api from "../services/api";
 
-export default function AddExpenseForm({ onClose, onExpenseAdded }) {
+export default function AddExpenseForm({ onClose, onExpenseAdded, expense }) {
+  const isEditing = !!expense;
   const [form, setForm] = useState({
-    itemDescription: "",
-    amount: "",
-    date: "",
-    category: "",
-    subCategory: "",
-    merchant: "",
-    paymentMethod: "",
-    notes: "",
+    itemDescription: expense?.itemDescription || "",
+    amount: expense?.amount || "",
+    date: expense?.date || "",
+    category: expense?.category || "",
+    subCategory: expense?.subCategory || "",
+    merchant: expense?.merchant || "",
+    paymentMethod: expense?.paymentMethod || "",
+    notes: expense?.notes || "",
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [receiptFile, setReceiptFile] = useState(null);
 
-  // update any field in the form state
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
@@ -25,14 +27,34 @@ export default function AddExpenseForm({ onClose, onExpenseAdded }) {
     setLoading(true);
     setError("");
     try {
-      await addExpense({
-        ...form,
-        amount: parseFloat(form.amount),
-      });
+      let receiptUrl = expense?.receiptUrl || null;
+
+      //if a file was selected, upload it first and get the URL
+      if (receiptFile) {
+        const formData = new FormData();
+        formData.append("file", receiptFile);
+        const uploadResponse = await api.post("/api/s3/upload", formData, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
+        receiptUrl = uploadResponse.data;
+      }
+      if (isEditing) {
+        await updateExpense(expense.id, {
+          ...form,
+          amount: parseFloat(form.amount),
+          receiptUrl,
+        });
+      } else {
+        await addExpense({
+          ...form,
+          amount: parseFloat(form.amount),
+          receiptUrl,
+        });
+      }
       onExpenseAdded();
       onClose();
     } catch (err) {
-      setError("Failed to add expense. Please try again.");
+      setError("Failed to save expense. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -42,7 +64,9 @@ export default function AddExpenseForm({ onClose, onExpenseAdded }) {
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50">
       <div className="bg-white rounded-2xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-5">
-          <p className="text-base font-medium text-purple-900">Add expense</p>
+          <p className="text-base font-medium text-purple-900">
+            {isEditing ? "Edit expense" : "Add expense"}
+          </p>
           <button
             onClick={onClose}
             className="text-gray-400 hover:text-gray-600 text-xl"
@@ -119,6 +143,8 @@ export default function AddExpenseForm({ onClose, onExpenseAdded }) {
               <option>Utilities</option>
               <option>Shopping</option>
               <option>Health</option>
+              <option>Subscriptions</option>
+              <option>Personal Finance</option>
               <option>Other</option>
             </select>
           </div>
@@ -169,6 +195,18 @@ export default function AddExpenseForm({ onClose, onExpenseAdded }) {
           </div>
 
           <div className="col-span-2">
+            <label className="text-xs font medium text-gray-600 block mb-1.5">
+              Receipt
+            </label>
+            <input
+              type="file"
+              accept="image/*,.pdf"
+              onChange={(e) => setReceiptFile(e.target.files[0])}
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-purple-400"
+            />
+          </div>
+
+          <div className="col-span-2">
             <label className="text-xs font-medium text-gray-600 block mb-1.5">
               Notes
             </label>
@@ -195,7 +233,11 @@ export default function AddExpenseForm({ onClose, onExpenseAdded }) {
               disabled={loading}
               className="flex-2 bg-purple-500 text-white rounded-lg py-2.5 text-sm font-medium hover:bg-purple-600 disabled:opacity-50 px-8"
             >
-              {loading ? "Saving..." : "Save expense"}
+              {loading
+                ? "Saving..."
+                : isEditing
+                  ? "Update expense"
+                  : "Save expense"}
             </button>
           </div>
         </form>
