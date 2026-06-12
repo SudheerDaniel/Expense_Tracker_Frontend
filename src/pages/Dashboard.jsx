@@ -14,6 +14,7 @@ export default function Dashboard() {
   const [filterPayment, setFilterPayment] = useState("");
   const [showAddForm, setShowAddForm] = useState(false);
   const [expandedId, setExpandedId] = useState(null);
+  const [editingExpense, setEditingExpense] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -231,7 +232,13 @@ export default function Dashboard() {
                       className="flex gap-2"
                       onClick={(e) => e.stopPropagation()}
                     >
-                      <button className="text-xs border border-gray-200 px-2 py-1 rounded text-gray-500 hover:border-gray-300">
+                      <button
+                        onClick={() => {
+                          setEditingExpense(expense);
+                          setShowAddForm(true);
+                        }}
+                        className="text-xs border border-gray-200 px-2 py-1 rounded text-gray-500 hover:border-gray-300"
+                      >
                         Edit
                       </button>
                       <button
@@ -289,8 +296,12 @@ export default function Dashboard() {
 
       {showAddForm && (
         <AddExpenseForm
-          onClose={() => setShowAddForm(false)}
+          onClose={() => {
+            setShowAddForm(false);
+            setEditingExpense(null);
+          }}
           onExpenseAdded={fetchExpenses}
+          expense={editingExpense}
         />
       )}
     </div>
