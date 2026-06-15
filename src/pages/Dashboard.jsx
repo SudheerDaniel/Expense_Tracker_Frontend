@@ -1,3 +1,4 @@
+import api from "../services/api";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { getAllExpenses, deleteExpense } from "../services/expenseService";
@@ -276,14 +277,18 @@ export default function Dashboard() {
                     {expense.receiptUrl && (
                       <div>
                         <p className="text-xs text-gray-400 mb-1">Receipt</p>
-                        <a
-                          href={expense.receiptUrl}
-                          target="_blank"
-                          rel="noreferrer"
+                        <button
+                          onClick={async () => {
+                            const key = expense.receiptUrl.split("/").pop();
+                            const response = await api.get(
+                              `/api/s3/presigned-url?key=${key}`,
+                            );
+                            window.open(response.data, "_blank");
+                          }}
                           className="text-sm text-purple-600 hover:underline"
                         >
                           View receipt
-                        </a>
+                        </button>
                       </div>
                     )}
                   </div>
