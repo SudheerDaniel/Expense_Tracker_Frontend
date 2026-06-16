@@ -22,8 +22,28 @@ export default function AddExpenseForm({ onClose, onExpenseAdded, expense }) {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
+  const validate = () => {
+    if (!form.itemDescription.trim()) {
+      return "Item description is required";
+    }
+    if (!form.amount || parseFloat(form.amount) <= 0) {
+      return "Amount must be greater than zero";
+    }
+    if (!form.date) {
+      return "Date is required";
+    }
+    return null; // null means no errors
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    //run frontend validation before hitting the API
+    const validationError = validate();
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
     setLoading(true);
     setError("");
     try {
@@ -81,7 +101,11 @@ export default function AddExpenseForm({ onClose, onExpenseAdded, expense }) {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="grid grid-cols-2 gap-4">
+        <form
+          onSubmit={handleSubmit}
+          className="grid grid-cols-2 gap-4"
+          noValidate
+        >
           <div className="col-span-2">
             <label className="text-xs font-medium text-gray-600 block mb-1.5">
               Item description
