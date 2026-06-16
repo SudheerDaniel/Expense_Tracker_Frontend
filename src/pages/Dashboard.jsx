@@ -3,7 +3,9 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { getAllExpenses, deleteExpense } from "../services/expenseService";
 import { logout } from "../services/authService";
+import api from "../services/api";
 import AddExpenseForm from "../components/AddExpenseForm";
+import BudgetCard from "../components/BudgetCard";
 
 export default function Dashboard() {
   const [expenses, setExpenses] = useState([]);
@@ -17,14 +19,31 @@ export default function Dashboard() {
   const [expandedId, setExpandedId] = useState(null);
   const [editingExpense, setEditingExpense] = useState(null);
   const navigate = useNavigate();
+  const [dateRange, setDateRange] = useState("thisMonth");
+  const [customFrom, setCustomFrom] = useState("");
+  const [customTo, setCustomTo] = useState("");
+  const [summary, setSummary] = useState(null);
 
   useEffect(() => {
     fetchExpenses();
+    fetchMonthSpent();
   }, []);
 
   useEffect(() => {
     applyFilters();
-  }, [expenses, searchNotes, filterCategory, filterPayment]);
+  }, [
+    expenses,
+    searchNotes,
+    filterCategory,
+    filterPayment,
+    dateRange,
+    customFrom,
+    customTo,
+  ]);
+
+  useEffect(() => {
+    fetchSummary();
+  }, [dateRange]);
 
   const fetchExpenses = async () => {
     try {
@@ -37,8 +56,27 @@ export default function Dashboard() {
     }
   };
 
+  const fetchSummary = async () => {
+    try {
+      const { from, to } = getDateRange();
+      if (!from || !to) return;
+      const response = await api.get(
+        `/api/expenses/summary?from=${from}&to=${to}`,
+      );
+      setSummary(response.data);
+    } catch (err) {
+      console.error("Failed to load summary", err);
+    }
+  };
+
   const applyFilters = () => {
     let result = [...expenses];
+
+    const { from, to } = getDateRange();
+    if (from && to) {
+      result = result.filter((e) => e.date >= from && e.date <= to);
+    }
+
     if (searchNotes) {
       result = result.filter((e) =>
         e.notes?.toLowerCase().includes(searchNotes.toLowerCase()),
@@ -50,6 +88,9 @@ export default function Dashboard() {
     if (filterPayment) {
       result = result.filter((e) => e.paymentMethod === filterPayment);
     }
+
+    result.sort((a, b) => b.date.localeCompare(a.date));
+
     setFilteredExpenses(result);
   };
 
@@ -57,6 +98,7 @@ export default function Dashboard() {
     try {
       await deleteExpense(id);
       setExpenses(expenses.filter((e) => e.id !== id));
+      fetchMonthSpent();
     } catch (err) {
       setError("Failed to delete expense");
     }
@@ -67,24 +109,68 @@ export default function Dashboard() {
     navigate("/login");
   };
 
-  const total = filteredExpenses.reduce((sum, e) => sum + e.amount, 0);
-
-  const thisMonth = filteredExpenses
-    .filter((e) => {
-      const d = new Date(e.date);
-      const now = new Date();
-      return (
-        d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()
-      );
-    })
-    .reduce((sum, e) => sum + e.amount, 0);
-
   const categories = [
     ...new Set(expenses.map((e) => e.category).filter(Boolean)),
   ];
   const paymentMethods = [
     ...new Set(expenses.map((e) => e.paymentMethod).filter(Boolean)),
   ];
+  const getDateRange = () => {
+    const now = new Date();
+    const today = now.toISOString().split("T")[0];
+    if (dateRange === "lifetime") {
+      return { from: "2000-01-01", to: today };
+    }
+
+    if (dateRange == "thisMonth") {
+      const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+      return { from: firstDay.toISOString().split("T")[0], to: today };
+    }
+    if (dateRange === "lastMonth") {
+      const firstDayLastMonth = new Date(
+        now.getFullYear(),
+        now.getMonth() - 1,
+        1,
+      );
+      const lastDayLastMonth = new Date(now.getFullYear(), now.getMonth(), 0);
+      return {
+        from: firstDayLastMonth.toISOString().split("T")[0],
+        to: lastDayLastMonth.toISOString().split("T")[0],
+      };
+    }
+    if (dateRange === "last7Days") {
+      const sevenDaysAgo = new Date(now);
+      sevenDaysAgo.setDate(now.getDate() - 7);
+      return { from: sevenDaysAgo.toISOString().split("T")[0], to: today };
+    }
+    if (dateRange === "last2Weeks") {
+      const twoWeeksAgo = new Date(now);
+      twoWeeksAgo.setDate(now.getDate() - 14);
+      return { from: twoWeeksAgo.toISOString().split("T")[0], to: today };
+    }
+    if (dateRange === "custom") {
+      return { from: customFrom, to: customTo };
+    }
+    return { from: today, to: today };
+  };
+
+  const [monthSpent, setMonthSpent] = useState(0);
+
+  const fetchMonthSpent = async () => {
+    try {
+      const now = new Date();
+      const firstDay = new Date(now.getFullYear(), now.getMonth(), 1)
+        .toISOString()
+        .split("T")[0];
+      const today = now.toISOString().split("T")[0];
+      const response = await api.get(
+        `/api/expenses/summary?from=${firstDay}&to=${today}`,
+      );
+      setMonthSpent(response.data.totalSpent);
+    } catch (err) {
+      console.error("Failed to load month spending", err);
+    }
+  };
 
   if (loading) {
     return (
@@ -130,36 +216,83 @@ export default function Dashboard() {
           </div>
         )}
 
-        <div className="grid grid-cols-3 gap-4 mb-6">
+        <div className="grid grid-cols-4 gap-4 mb-6">
           <div className="bg-white rounded-xl p-4 border border-gray-100">
             <p className="text-xs text-gray-400 mb-1">Total spent</p>
             <p className="text-2xl font-medium text-purple-900">
-              ${total.toFixed(2)}
+              ${summary ? summary.totalSpent.toFixed(2) : "0.00"}
             </p>
           </div>
           <div className="bg-white rounded-xl p-4 border border-gray-100">
-            <p className="text-xs text-gray-400 mb-1">This month</p>
+            <p className="text-xs text-gray-400 mb-1">Top category</p>
             <p className="text-2xl font-medium text-purple-900">
-              ${thisMonth.toFixed(2)}
+              {summary && Object.keys(summary.byCategory).length > 0
+                ? Object.entries(summary.byCategory).sort(
+                    (a, b) => b[1] - a[1],
+                  )[0][0]
+                : "-"}
             </p>
           </div>
           <div className="bg-white rounded-xl p-4 border border-gray-100">
-            <p className="text-xs text-gray-400 mb-1">Total expenses</p>
+            <p className="text-xs text-gray-400 mb-1">Expenses in range</p>
             <p className="text-2xl font-medium text-purple-900">
               {filteredExpenses.length}
             </p>
           </div>
+          <BudgetCard monthSpent={monthSpent} />
         </div>
 
         <div className="bg-white rounded-xl p-4 border border-gray-100 mb-4">
+          {/* Date range - primary filter */}
+          <div className="flex gap-2 flex-wrap mb-3">
+            {[
+              { key: "lifetime", label: "Lifetime" },
+              { key: "thisMonth", label: "This month" },
+              { key: "lastMonth", label: "Last month" },
+              { key: "last7Days", label: "Last 7 days" },
+              { key: "last2Weeks", label: "Last 2 weeks" },
+              { key: "custom", label: "Custom" },
+            ].map((opt) => (
+              <button
+                key={opt.key}
+                onClick={() => setDateRange(opt.key)}
+                className={`text-sm px-3 py-1.5 rounded-lg border ${
+                  dateRange === opt.key
+                    ? "bg-purple-500 text-white border-purple-500"
+                    : "border-gray-200 text-gray-600 hover:border-purple-300"
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+
+          {dateRange === "custom" && (
+            <div className="flex gap-2 mb-3">
+              <input
+                type="date"
+                value={customFrom}
+                onChange={(e) => setCustomFrom(e.target.value)}
+                className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-purple-400"
+              />
+              <input
+                type="date"
+                value={customTo}
+                onChange={(e) => setCustomTo(e.target.value)}
+                className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-purple-400"
+              />
+              <button
+                onClick={fetchSummary}
+                disabled={!customFrom || !customTo}
+                className="text-sm px-3 py-2 rounded-lg bg-purple-500 text-white hover:bg-purple-600 disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                Apply
+              </button>
+            </div>
+          )}
+
+          {/* Secondary filters */}
           <div className="flex gap-3 flex-wrap">
-            <input
-              type="text"
-              placeholder="Search by notes..."
-              value={searchNotes}
-              onChange={(e) => setSearchNotes(e.target.value)}
-              className="flex-1 min-w-36 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-purple-400"
-            />
             <select
               value={filterCategory}
               onChange={(e) => setFilterCategory(e.target.value)}
@@ -184,9 +317,16 @@ export default function Dashboard() {
                 </option>
               ))}
             </select>
+            <input
+              type="text"
+              placeholder="Search notes"
+              value={searchNotes}
+              onChange={(e) => setSearchNotes(e.target.value)}
+              className="w-40 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-purple-400"
+            />
             <button
               onClick={() => setShowAddForm(true)}
-              className="bg-purple-500 text-white text-sm px-4 py-2 rounded-lg hover:bg-purple-600"
+              className="ml-auto bg-purple-500 text-white text-sm px-4 py-2 rounded-lg hover:bg-purple-600"
             >
               + Add expense
             </button>
@@ -305,7 +445,10 @@ export default function Dashboard() {
             setShowAddForm(false);
             setEditingExpense(null);
           }}
-          onExpenseAdded={fetchExpenses}
+          onExpenseAdded={() => {
+            fetchExpenses();
+            fetchMonthSpent();
+          }}
           expense={editingExpense}
         />
       )}
