@@ -43,7 +43,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     fetchSummary();
-  }, [dateRange]);
+  }, [dateRange, filterCategory, filterPayment]);
 
   const fetchExpenses = async () => {
     try {
@@ -60,9 +60,17 @@ export default function Dashboard() {
     try {
       const { from, to } = getDateRange();
       if (!from || !to) return;
-      const response = await api.get(
-        `/api/expenses/summary?from=${from}&to=${to}`,
-      );
+
+      //build query string, including optional category/paymentMethod filters
+      let url = `/api/expenses/summary?from=${from}&to=${to}`;
+      if (filterCategory) {
+        url += `&category=${encodeURIComponent(filterCategory)}`;
+      }
+      if (filterPayment) {
+        url += `&paymentMethod=${encodeURIComponent(filterPayment)}`;
+      }
+
+      const response = await api.get(url);
       setSummary(response.data);
     } catch (err) {
       console.error("Failed to load summary", err);
