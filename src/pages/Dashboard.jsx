@@ -8,10 +8,9 @@ import BudgetCard from "../components/BudgetCard";
 
 export default function Dashboard() {
   const [expenses, setExpenses] = useState([]);
-  const [filteredExpenses, setFilteredExpenses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [searchNotes, setSearchNotes] = useState("");
+  const [totalElements, setTotalElements] = useState(0);
   const [filterCategory, setFilterCategory] = useState("");
   const [filterPayment, setFilterPayment] = useState("");
   const [showAddForm, setShowAddForm] = useState(false);
@@ -22,23 +21,20 @@ export default function Dashboard() {
   const [customFrom, setCustomFrom] = useState("");
   const [customTo, setCustomTo] = useState("");
   const [summary, setSummary] = useState(null);
+  const [page, setPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
 
   useEffect(() => {
-    fetchExpenses();
     fetchMonthSpent();
   }, []);
 
   useEffect(() => {
-    applyFilters();
-  }, [
-    expenses,
-    searchNotes,
-    filterCategory,
-    filterPayment,
-    dateRange,
-    customFrom,
-    customTo,
-  ]);
+    fetchExpenses();
+  }, [page, dateRange, customFrom, customTo, filterCategory, filterPayment]); // this triggers the fetchExpenses to watch the filters
+
+  useEffect(() => {
+    setPage(0);
+  }, [dateRange, customFrom, customTo, filterCategory, filterPayment]);
 
   useEffect(() => {
     fetchSummary();
@@ -46,8 +42,18 @@ export default function Dashboard() {
 
   const fetchExpenses = async () => {
     try {
-      const data = await getAllExpenses();
-      setExpenses(data);
+      const { from, to } = getDateRange();
+      const data = await getAllExpenses(
+        page,
+        50,
+        from,
+        to,
+        filterCategory || null,
+        filterPayment || null,
+      );
+      setExpenses(data.content); // array of expense objects for this page
+      setTotalElements(data.totalElements); // total matching records across all pages
+      setTotalPages(data.totalPages); // store total pages for pagination control
     } catch (err) {
       setError("Failed to load expenses");
     } finally {
@@ -74,31 +80,6 @@ export default function Dashboard() {
     } catch (err) {
       console.error("Failed to load summary", err);
     }
-  };
-
-  const applyFilters = () => {
-    let result = [...expenses];
-
-    const { from, to } = getDateRange();
-    if (from && to) {
-      result = result.filter((e) => e.date >= from && e.date <= to);
-    }
-
-    if (searchNotes) {
-      result = result.filter((e) =>
-        e.notes?.toLowerCase().includes(searchNotes.toLowerCase()),
-      );
-    }
-    if (filterCategory) {
-      result = result.filter((e) => e.category === filterCategory);
-    }
-    if (filterPayment) {
-      result = result.filter((e) => e.paymentMethod === filterPayment);
-    }
-
-    result.sort((a, b) => b.date.localeCompare(a.date));
-
-    setFilteredExpenses(result);
   };
 
   const handleDelete = async (id) => {
@@ -243,7 +224,7 @@ export default function Dashboard() {
           <div className="bg-white rounded-xl p-4 border border-gray-100">
             <p className="text-xs text-gray-400 mb-1">Expenses in range</p>
             <p className="text-2xl font-medium text-purple-900">
-              {filteredExpenses.length}
+              {totalElements} {/* it will show the current page only */}
             </p>
           </div>
           <BudgetCard monthSpent={monthSpent} />
@@ -324,13 +305,6 @@ export default function Dashboard() {
                 </option>
               ))}
             </select>
-            <input
-              type="text"
-              placeholder="Search notes"
-              value={searchNotes}
-              onChange={(e) => setSearchNotes(e.target.value)}
-              className="w-40 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-purple-400"
-            />
             <button
               onClick={() => setShowAddForm(true)}
               className="ml-auto bg-purple-500 text-white text-sm px-4 py-2 rounded-lg hover:bg-purple-600"
@@ -349,12 +323,12 @@ export default function Dashboard() {
             ))}
           </div>
 
-          {filteredExpenses.length === 0 ? (
+          {expenses.length === 0 ? (
             <div className="px-4 py-12 text-center text-gray-400 text-sm">
               No expenses found. Add your first expense.
             </div>
           ) : (
-            filteredExpenses.map((expense) => (
+            expenses.map((expense) => (
               <div key={expense.id}>
                 <div
                   className="grid grid-cols-5 px-4 py-3 border-b border-gray-50 items-center cursor-pointer hover:bg-purple-50/50"
@@ -440,6 +414,26 @@ export default function Dashboard() {
             ))
           )}
         </div>
+      </div>
+
+      <div className="flex items-center justify-between mt-4">
+        <button
+          onClick={() => setPage((p) => Math.max(p - 1, 0))}
+          disabled={page === 0}
+          className="text-sm px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:border-purple-300 disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          Previous
+        </button>
+        <span className="text-sm text-gray-400">
+          Page {page + 1} of {Math.max(totalPages, 1)}
+        </span>
+        <button
+          onClick={() => setPage((p) => Math.min(p + 1, totalPages - 1))}
+          disabled={page >= totalPages - 1}
+          className="text-sm px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:border-purple-300 disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          Next
+        </button>
       </div>
 
       {showAddForm && (
