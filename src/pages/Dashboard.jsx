@@ -1,4 +1,3 @@
-import api from "../services/api";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { getAllExpenses, deleteExpense } from "../services/expenseService";
@@ -11,6 +10,7 @@ export default function Dashboard() {
   const [expenses, setExpenses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [searchNotes, setSearchNotes] = useState("");
   const [totalElements, setTotalElements] = useState(0);
   const [filterCategory, setFilterCategory] = useState("");
   const [filterPayment, setFilterPayment] = useState("");
@@ -31,11 +31,26 @@ export default function Dashboard() {
 
   useEffect(() => {
     fetchExpenses();
-  }, [page, dateRange, customFrom, customTo, filterCategory, filterPayment]); // this triggers the fetchExpenses to watch the filters
+  }, [
+    page,
+    dateRange,
+    customFrom,
+    customTo,
+    filterCategory,
+    filterPayment,
+    searchNotes,
+  ]); // this triggers the fetchExpenses to watch the filters
 
   useEffect(() => {
     setPage(0);
-  }, [dateRange, customFrom, customTo, filterCategory, filterPayment]);
+  }, [
+    dateRange,
+    customFrom,
+    customTo,
+    filterCategory,
+    filterPayment,
+    searchNotes,
+  ]);
 
   useEffect(() => {
     fetchSummary();
@@ -51,6 +66,7 @@ export default function Dashboard() {
         to,
         filterCategory || null,
         filterPayment || null,
+        searchNotes || null,
       );
       setExpenses(data.content); // array of expense objects for this page
       setTotalElements(data.totalElements); // total matching records across all pages
@@ -312,6 +328,13 @@ export default function Dashboard() {
             >
               + Add expense
             </button>
+            <input
+              type="text"
+              placeholder="Search notes"
+              value={searchNotes}
+              onChange={(e) => setSearchNotes(e.target.value)}
+              className="w-40 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-purple-400"
+            />
           </div>
         </div>
 
