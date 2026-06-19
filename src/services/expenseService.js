@@ -1,8 +1,22 @@
 import api from "./api";
 
-// get all expenses for the logged in user
-export const getAllExpenses = async () => {
-  const response = await api.get("/api/expenses");
+// get all expenses for the logged in user, paginated and optionally filtered
+// page/size control pagination; from/to/category/paymentMethod are optional filters
+export const getAllExpenses = async (
+  page = 0,
+  size = 50,
+  from = null,
+  to = null,
+  category = null,
+  paymentMethod = null,
+) => {
+  let url = `/api/expenses?page=${page}&size=${size}`;
+  if (from) url += `&from=${from}`;
+  if (to) url += `&to=${to}`;
+  if (category) url += `&category=${encodeURIComponent(category)}`;
+  if (paymentMethod)
+    url += `&paymentMethod=${encodeURIComponent(paymentMethod)}`;
+  const response = await api.get(url);
   return response.data;
 };
 
