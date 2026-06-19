@@ -9,6 +9,7 @@ export const getAllExpenses = async (
   to = null,
   category = null,
   paymentMethod = null,
+  notes = null,
 ) => {
   let url = `/api/expenses?page=${page}&size=${size}`;
   if (from) url += `&from=${from}`;
@@ -16,6 +17,7 @@ export const getAllExpenses = async (
   if (category) url += `&category=${encodeURIComponent(category)}`;
   if (paymentMethod)
     url += `&paymentMethod=${encodeURIComponent(paymentMethod)}`;
+  if (notes) url += `&notes=${encodeURIComponent(notes)}`;
   const response = await api.get(url);
   return response.data;
 };
