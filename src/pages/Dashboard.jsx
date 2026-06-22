@@ -5,6 +5,7 @@ import { logout } from "../services/authService";
 import api from "../services/api";
 import AddExpenseForm from "../components/AddExpenseForm";
 import BudgetCard from "../components/BudgetCard";
+import { formatCurrency } from "../utils/currency";
 
 export default function Dashboard() {
   const [expenses, setExpenses] = useState([]);
@@ -234,7 +235,7 @@ export default function Dashboard() {
           <div className="bg-white rounded-xl p-4 border border-gray-100">
             <p className="text-xs text-gray-400 mb-1">Total spent</p>
             <p className="text-2xl font-medium text-purple-900">
-              ${summary ? summary.totalSpent.toFixed(2) : "0.00"}
+              {formatCurrency(summary ? summary.totalSpent : 0)}
             </p>
           </div>
           <div className="bg-white rounded-xl p-4 border border-gray-100">
@@ -381,7 +382,7 @@ export default function Dashboard() {
                   <span className="text-sm text-gray-500">{expense.date}</span>
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-medium text-purple-900">
-                      ${expense.amount.toFixed(2)}
+                      {formatCurrency(expense.amount)}
                     </span>
                     <div
                       className="flex gap-2"
