@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import api from "../services/api";
+import { formatCurrency } from "../utils/currency";
 
 // BudgetCard: shows the current month's budget vs spending,
 // or a "Set budget" prompt if no budget exists yet.
@@ -73,7 +74,7 @@ export default function BudgetCard({ monthSpent }) {
         // Show progress bar when a budget exists
         <>
           <p className="text-2xl font-medium text-purple-900">
-            ${monthSpent.toFixed(2)} / ${budget.budgetAmount.toFixed(2)}
+            {formatCurrency(monthSpent)} / {formatCurrency(budget.budgetAmount)}
           </p>
           <div className="w-full bg-gray-100 rounded-full h-2 mt-2 overflow-hidden">
             <div
