@@ -32,10 +32,7 @@ export default function Dashboard() {
   }, []);
 
   useEffect(() => {
-    fetchFilterOptions();
-  }, []);
-
-  useEffect(() => {
+    const { from, to } = getDateRange();
     setPage(0);
     fetchExpenses(0);
   }, [
@@ -46,6 +43,11 @@ export default function Dashboard() {
     filterPayment,
     searchNotes,
   ]); // this triggers the fetchExpenses to watch the filters
+
+  useEffect(() => {
+    const { from, to } = getDateRange();
+    fetchFilterOptions(from, to);
+  }, [dateRange, customFrom, customTo]);
 
   useEffect(() => {
     fetchExpenses(page);
@@ -113,12 +115,8 @@ export default function Dashboard() {
     navigate("/login");
   };
 
-  const fetchFilterOptions = async () => {
+  const fetchFilterOptions = async (from, to) => {
     try {
-      const { from, to } = {
-        from: "2000-01-01",
-        to: new Date().toISOString().split("T")[0],
-      };
       const data = await getAllExpenses(0, 1000, from, to, null, null, null);
       setAllCategories([
         ...new Set(data.content.map((e) => e.category).filter(Boolean)),
@@ -127,7 +125,7 @@ export default function Dashboard() {
         ...new Set(data.content.map((e) => e.paymentMethod).filter(Boolean)),
       ]);
     } catch (err) {
-      console.error("Failed to load all categories", err);
+      console.error("Failed to load filter options", err);
     }
   };
 
