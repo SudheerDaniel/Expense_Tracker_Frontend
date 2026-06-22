@@ -10,6 +10,8 @@ export default function Dashboard() {
   const [expenses, setExpenses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [allCategories, setAllCategories] = useState([]);
+  const [allPaymentMethods, setAllPaymentMethods] = useState([]);
   const [searchNotes, setSearchNotes] = useState("");
   const [totalElements, setTotalElements] = useState(0);
   const [filterCategory, setFilterCategory] = useState("");
@@ -30,9 +32,13 @@ export default function Dashboard() {
   }, []);
 
   useEffect(() => {
-    fetchExpenses();
+    fetchFilterOptions();
+  }, []);
+
+  useEffect(() => {
+    setPage(0);
+    fetchExpenses(0);
   }, [
-    page,
     dateRange,
     customFrom,
     customTo,
@@ -42,25 +48,18 @@ export default function Dashboard() {
   ]); // this triggers the fetchExpenses to watch the filters
 
   useEffect(() => {
-    setPage(0);
-  }, [
-    dateRange,
-    customFrom,
-    customTo,
-    filterCategory,
-    filterPayment,
-    searchNotes,
-  ]);
+    fetchExpenses(page);
+  }, [page]);
 
   useEffect(() => {
     fetchSummary();
   }, [dateRange, filterCategory, filterPayment]);
 
-  const fetchExpenses = async () => {
+  const fetchExpenses = async (pageNum = page) => {
     try {
       const { from, to } = getDateRange();
       const data = await getAllExpenses(
-        page,
+        pageNum,
         50,
         from,
         to,
@@ -110,16 +109,28 @@ export default function Dashboard() {
   };
 
   const handleLogout = async () => {
-   await logout();
+    await logout();
     navigate("/login");
   };
 
-  const categories = [
-    ...new Set(expenses.map((e) => e.category).filter(Boolean)),
-  ];
-  const paymentMethods = [
-    ...new Set(expenses.map((e) => e.paymentMethod).filter(Boolean)),
-  ];
+  const fetchFilterOptions = async () => {
+    try {
+      const { from, to } = {
+        from: "2000-01-01",
+        to: new Date().toISOString().split("T")[0],
+      };
+      const data = await getAllExpenses(0, 1000, from, to, null, null, null);
+      setAllCategories([
+        ...new Set(data.content.map((e) => e.category).filter(Boolean)),
+      ]);
+      setAllPaymentMethods([
+        ...new Set(data.content.map((e) => e.paymentMethod).filter(Boolean)),
+      ]);
+    } catch (err) {
+      console.error("Failed to load all categories", err);
+    }
+  };
+
   const getDateRange = () => {
     const now = new Date();
     const today = now.toISOString().split("T")[0];
@@ -304,7 +315,7 @@ export default function Dashboard() {
               className="border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-600 focus:outline-none focus:border-purple-400"
             >
               <option value="">All categories</option>
-              {categories.map((c) => (
+              {allCategories.map((c) => (
                 <option key={c} value={c}>
                   {c}
                 </option>
@@ -316,7 +327,7 @@ export default function Dashboard() {
               className="border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-600 focus:outline-none focus:border-purple-400"
             >
               <option value="">All payment methods</option>
-              {paymentMethods.map((p) => (
+              {allPaymentMethods.map((p) => (
                 <option key={p} value={p}>
                   {p}
                 </option>
