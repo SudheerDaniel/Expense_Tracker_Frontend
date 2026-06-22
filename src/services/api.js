@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const api = axios.create({
-  baseURL: "http://localhost:8080",
+  baseURL: import.meta.env.VITE_API_BASE_URL ||  "http://localhost:8080",
 });
 
 // attach the access token to every outgoing request
@@ -24,7 +24,7 @@ const performRefresh = () => {
   }
 
   return axios
-    .post("http://localhost:8080/api/auth/refresh", { refreshToken })
+    .post(`${import.meta.env.VITE_API_BASE_URL || "http://localhost:8080"}/api/auth/refresh`, { refreshToken })
     .then((response) => {
       const newAccessToken = response.data.accessToken;
       localStorage.setItem("accessToken", newAccessToken);
