@@ -5,6 +5,8 @@ import { logout } from "../services/authService";
 import api from "../services/api";
 import AddExpenseForm from "../components/AddExpenseForm";
 import BudgetCard from "../components/BudgetCard";
+import FeedbackModal from "../components/FeedbackModal";
+
 import {
   formatCurrency,
   getPreferredCurrency,
@@ -32,6 +34,7 @@ export default function Dashboard() {
   const [page, setPage] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
   const [currency, setCurrency] = useState(getPreferredCurrency());
+  const [showFeedback, setShowFeedback] = useState(false);
 
   useEffect(() => {
     fetchMonthSpent();
@@ -239,6 +242,12 @@ export default function Dashboard() {
             £ GBP
           </option>
         </select>
+        <button
+          onClick={() => setShowFeedback(true)}
+          className="bg-white/20 text-white text-sm px-3 py-1.5 rounded-lg hover:bg-white/30"
+        >
+          Feedback
+        </button>
         <button
           onClick={handleLogout}
           className="bg-white/20 text-white text-sm px-4 py-1.5 rounded-lg hover:bg-white/30"
@@ -510,6 +519,8 @@ export default function Dashboard() {
           expense={editingExpense}
         />
       )}
+
+      {showFeedback && <FeedbackModal onClose={() => setShowFeedback(false)} />}
     </div>
   );
 }
