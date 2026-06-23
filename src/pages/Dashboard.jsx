@@ -5,7 +5,11 @@ import { logout } from "../services/authService";
 import api from "../services/api";
 import AddExpenseForm from "../components/AddExpenseForm";
 import BudgetCard from "../components/BudgetCard";
-import { formatCurrency } from "../utils/currency";
+import {
+  formatCurrency,
+  getPreferredCurrency,
+  setPreferredCurrency,
+} from "../utils/currency";
 
 export default function Dashboard() {
   const [expenses, setExpenses] = useState([]);
@@ -27,6 +31,7 @@ export default function Dashboard() {
   const [summary, setSummary] = useState(null);
   const [page, setPage] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
+  const [currency, setCurrency] = useState(getPreferredCurrency());
 
   useEffect(() => {
     fetchMonthSpent();
@@ -216,6 +221,24 @@ export default function Dashboard() {
           </div>
           <span className="text-white font-medium">Expense Tracker</span>
         </div>
+        <select
+          value={currency}
+          onChange={(e) => {
+            setPreferredCurrency(e.target.value);
+            setCurrency(e.target.value);
+          }}
+          className="bg-white/20 text-white text-sm px-3 py-1.5 rounded-lg border-none focus:outline-none cursor-pointer"
+        >
+          <option value="USD" className="text-gray-800">
+            $ USD
+          </option>
+          <option value="INR" className="text-gray-800">
+            ₹ INR
+          </option>
+          <option value="GBP" className="text-gray-800">
+            £ GBP
+          </option>
+        </select>
         <button
           onClick={handleLogout}
           className="bg-white/20 text-white text-sm px-4 py-1.5 rounded-lg hover:bg-white/30"
@@ -235,7 +258,7 @@ export default function Dashboard() {
           <div className="bg-white rounded-xl p-4 border border-gray-100">
             <p className="text-xs text-gray-400 mb-1">Total spent</p>
             <p className="text-2xl font-medium text-purple-900">
-              {formatCurrency(summary ? summary.totalSpent : 0)}
+              {formatCurrency(summary ? summary.totalSpent : 0, currency)}
             </p>
           </div>
           <div className="bg-white rounded-xl p-4 border border-gray-100">
@@ -254,7 +277,7 @@ export default function Dashboard() {
               {totalElements} {/* it will show the current page only */}
             </p>
           </div>
-          <BudgetCard monthSpent={monthSpent} />
+          <BudgetCard monthSpent={monthSpent} currency={currency} />
         </div>
 
         <div className="bg-white rounded-xl p-4 border border-gray-100 mb-4">
@@ -382,7 +405,7 @@ export default function Dashboard() {
                   <span className="text-sm text-gray-500">{expense.date}</span>
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-medium text-purple-900">
-                      {formatCurrency(expense.amount)}
+                      {formatCurrency(expense.amount, currency)}
                     </span>
                     <div
                       className="flex gap-2"

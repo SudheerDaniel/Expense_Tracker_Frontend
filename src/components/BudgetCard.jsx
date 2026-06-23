@@ -5,7 +5,7 @@ import { formatCurrency } from "../utils/currency";
 // BudgetCard: shows the current month's budget vs spending,
 // or a "Set budget" prompt if no budget exists yet.
 // monthSpent is passed in from Dashboard (computed from the summary endpoint).
-export default function BudgetCard({ monthSpent }) {
+export default function BudgetCard({ monthSpent, currency }) {
   const [budget, setBudget] = useState(null); // null = no budget set for this month
   const [budgetInput, setBudgetInput] = useState("");
   const [showBudgetInput, setShowBudgetInput] = useState(false);
@@ -74,7 +74,8 @@ export default function BudgetCard({ monthSpent }) {
         // Show progress bar when a budget exists
         <>
           <p className="text-2xl font-medium text-purple-900">
-            {formatCurrency(monthSpent)} / {formatCurrency(budget.budgetAmount)}
+            {formatCurrency(monthSpent, currency)} /{" "}
+            {formatCurrency(budget.budgetAmount, currency)}
           </p>
           <div className="w-full bg-gray-100 rounded-full h-2 mt-2 overflow-hidden">
             <div
