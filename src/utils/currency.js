@@ -1,16 +1,20 @@
-// Detects the user's locale from the browser and formats the amount
-// in the appropriate currency (INR for India, USD for US, etc.)
-export function formatCurrency(amount) {
-  const locale = navigator.language || "en-US";
+const CURRENCY_KEY = "preferredCurrency";
+export function getPreferredCurrency() {
+  return localStorage.getItem(CURRENCY_KEY) || "USD";
+}
 
-  const currencyMap = {
-    "en-IN": "INR",
-    "hi-IN": "INR",
-    "en-US": "USD",
-    "en-GB": "GBP",
+export function setPreferredCurrency(currency) {
+  localStorage.setItem(CURRENCY_KEY, currency);
+}
+
+export function formatCurrency(amount, currency = getPreferredCurrency()) {
+  const localeMap = {
+    USD: "en-US",
+    INR: "en-IN",
+    GBP: "en-GB",
   };
 
-  const currency = currencyMap[locale] || "USD";
+  const locale = localeMap[currency] || "en-US";
 
   return new Intl.NumberFormat(locale, {
     style: "currency",
