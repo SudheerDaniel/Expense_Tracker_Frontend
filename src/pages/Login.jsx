@@ -25,8 +25,14 @@ export default function Login() {
       // redirect to dashboard on success
       navigate("/dashboard");
     } catch (err) {
-      // show error message if login fails
-      setError("Invalid email or password");
+      // show specific message if email is not verified yet
+      if (err.response?.status === 403) {
+        setError(
+          "Please verify your email before logging in. Check your inbox.",
+        );
+      } else {
+        setError("Invalid email or password");
+      }
     } finally {
       // always stop the loading spinner whether success or failure
       setLoading(false);

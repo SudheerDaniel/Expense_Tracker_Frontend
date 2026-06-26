@@ -3,6 +3,7 @@ import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import Dashboard from "./pages/Dashboard";
 import { isLoggedIn } from "./services/authService";
+import VerifyEmail from "./pages/VerifyEmail";
 
 // ProtectedRoute — if user is not logged in, redirect to login
 // think of it like Spring Security's access control but on the frontend
@@ -27,6 +28,7 @@ export default function App() {
             </ProtectedRoute>
           }
         />
+        <Route path="/verify-email" element={<VerifyEmail />} />
       </Routes>
     </BrowserRouter>
   );
